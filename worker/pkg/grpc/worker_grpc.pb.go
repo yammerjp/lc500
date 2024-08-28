@@ -19,8 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	GreetingService_Greet_FullMethodName             = "/worker.GreetingService/Greet"
-	GreetingService_GreetServerStream_FullMethodName = "/worker.GreetingService/GreetServerStream"
+	GreetingService_Greet_FullMethodName = "/worker.GreetingService/Greet"
 )
 
 // GreetingServiceClient is the client API for GreetingService service.
@@ -28,7 +27,6 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GreetingServiceClient interface {
 	Greet(ctx context.Context, in *GreetRequest, opts ...grpc.CallOption) (*GreetResponse, error)
-	GreetServerStream(ctx context.Context, in *GreetRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GreetResponse], error)
 }
 
 type greetingServiceClient struct {
@@ -49,31 +47,11 @@ func (c *greetingServiceClient) Greet(ctx context.Context, in *GreetRequest, opt
 	return out, nil
 }
 
-func (c *greetingServiceClient) GreetServerStream(ctx context.Context, in *GreetRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GreetResponse], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &GreetingService_ServiceDesc.Streams[0], GreetingService_GreetServerStream_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[GreetRequest, GreetResponse]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type GreetingService_GreetServerStreamClient = grpc.ServerStreamingClient[GreetResponse]
-
 // GreetingServiceServer is the server API for GreetingService service.
 // All implementations must embed UnimplementedGreetingServiceServer
 // for forward compatibility.
 type GreetingServiceServer interface {
 	Greet(context.Context, *GreetRequest) (*GreetResponse, error)
-	GreetServerStream(*GreetRequest, grpc.ServerStreamingServer[GreetResponse]) error
 	mustEmbedUnimplementedGreetingServiceServer()
 }
 
@@ -86,9 +64,6 @@ type UnimplementedGreetingServiceServer struct{}
 
 func (UnimplementedGreetingServiceServer) Greet(context.Context, *GreetRequest) (*GreetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Greet not implemented")
-}
-func (UnimplementedGreetingServiceServer) GreetServerStream(*GreetRequest, grpc.ServerStreamingServer[GreetResponse]) error {
-	return status.Errorf(codes.Unimplemented, "method GreetServerStream not implemented")
 }
 func (UnimplementedGreetingServiceServer) mustEmbedUnimplementedGreetingServiceServer() {}
 func (UnimplementedGreetingServiceServer) testEmbeddedByValue()                         {}
@@ -129,17 +104,6 @@ func _GreetingService_Greet_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GreetingService_GreetServerStream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GreetRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(GreetingServiceServer).GreetServerStream(m, &grpc.GenericServerStream[GreetRequest, GreetResponse]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type GreetingService_GreetServerStreamServer = grpc.ServerStreamingServer[GreetResponse]
-
 // GreetingService_ServiceDesc is the grpc.ServiceDesc for GreetingService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,12 +116,6 @@ var GreetingService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _GreetingService_Greet_Handler,
 		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "GreetServerStream",
-			Handler:       _GreetingService_GreetServerStream_Handler,
-			ServerStreams: true,
-		},
-	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "worker.proto",
 }
