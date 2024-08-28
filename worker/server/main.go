@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"time"
 
 	workerpb "github.com/yammerjp/lc500/worker/pkg/grpc"
 	"google.golang.org/grpc"
@@ -19,6 +20,17 @@ type server struct {
 
 func (s *server) Greet(ctx context.Context, req *workerpb.GreetRequest) (*workerpb.GreetResponse, error) {
 	return &workerpb.GreetResponse{Message: "Hello, " + req.GetName()}, nil
+}
+
+func (s *server) GreetServerStream(req *workerpb.GreetRequest, stream workerpb.GreetingService_GreetServerStreamServer) error {
+	resCount := 5
+	for i := 0; i < resCount; i++ {
+		if err := stream.Send(&workerpb.GreetResponse{Message: "Hello, " + req.GetName()}); err != nil {
+			return err
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return nil
 }
 
 func NewMyServer() *server {

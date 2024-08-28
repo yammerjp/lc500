@@ -6,6 +6,7 @@ option go_package = "pkg/grpc";
 
 service GreetingService {
     rpc Greet(GreetRequest) returns (GreetResponse) {}
+    rpc GreetServerStream(GreetRequest) returns (stream GreetResponse) {}
 }
 
 message GreetRequest {
