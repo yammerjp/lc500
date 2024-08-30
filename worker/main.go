@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,68 +8,66 @@ import (
 	v8 "rogchap.com/v8go"
 )
 
-type WorkerRequest struct {
-	Script      string `json:"script"`
-	HttpRequest struct {
-		Method  string            `json:"method"`
-		Url     string            `json:"url"`
-		Headers map[string]string `json:"headers"`
-		Body    string            `json:"body"`
-	} `json:"httpRequest"`
-}
-
 func workerHandler(w http.ResponseWriter, r *http.Request) {
 	iso := v8.NewIsolate()
-
-	workerRequestBytes, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
-		return
-	}
-
-	workerRequest := WorkerRequest{}
-	if err := json.Unmarshal(workerRequestBytes, &workerRequest); err != nil {
-		http.Error(w, "Failed to unmarshal request body", http.StatusInternalServerError)
-		return
-	}
-
-	method, err := v8.NewValue(iso, workerRequest.HttpRequest.Method)
-	if err != nil {
-		http.Error(w, "Failed to create method", http.StatusInternalServerError)
-		return
-	}
-	url, err := v8.NewValue(iso, workerRequest.HttpRequest.Url)
-	if err != nil {
-		http.Error(w, "Failed to create url", http.StatusInternalServerError)
-		return
-	}
-	headers := v8.NewObjectTemplate(iso)
-	for key, value := range workerRequest.HttpRequest.Headers {
-		headerValue, err := v8.NewValue(iso, value)
-		if err != nil {
-			http.Error(w, "Failed to create header value", http.StatusInternalServerError)
-			return
-		}
-		if err := headers.Set(key, headerValue); err != nil {
-			http.Error(w, "Failed to set header", http.StatusInternalServerError)
-			return
-		}
-	}
-	body, err := v8.NewValue(iso, workerRequest.HttpRequest.Body)
-	if err != nil {
-		http.Error(w, "Failed to create body", http.StatusInternalServerError)
-		return
-	}
-
-	v8Lc500 := v8.NewObjectTemplate(iso)
-	v8Lc500.Set("method", method)
-	v8Lc500.Set("url", url)
-	v8Lc500.Set("headers", headers)
-	v8Lc500.Set("body", body)
 	globalThis := v8.NewObjectTemplate(iso)
-	globalThis.Set("lc500", v8Lc500)
+
+	globalThis.Set("readHeader", v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		val, err := v8.NewValue(iso, r.Header.Get(info.Args()[0].String()))
+		if err != nil {
+			fmt.Println(err)
+			str, err := v8.NewValue(iso, err.Error())
+			if err != nil {
+				fmt.Println(err)
+				iso.Dispose()
+				return nil
+			}
+			iso.ThrowException(str)
+			return nil
+		}
+		return val
+	}))
+
+	globalThis.Set("readBody", v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			fmt.Println(err)
+			iso.Dispose()
+			return nil
+		}
+		val, err := v8.NewValue(iso, string(body))
+		if err != nil {
+			fmt.Println(err)
+			iso.Dispose()
+			return nil
+		}
+		return val
+	}))
+
+	globalThis.Set("setStatus", v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		w.WriteHeader(int(info.Args()[0].Int32()))
+		return nil
+	}))
+
+	globalThis.Set("setHeader", v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		w.Header().Set(info.Args()[0].String(), info.Args()[1].String())
+		return nil
+	}))
+
+	globalThis.Set("renderBody", v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		w.Write([]byte(info.Args()[0].String()))
+		return nil
+	}))
 	ctx := v8.NewContext(iso, globalThis)
-	script, err := iso.CompileUnboundScript(workerRequest.Script, "main.js", v8.CompileOptions{})
+
+	scriptStr, err := io.ReadAll(r.Body)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Failed to read script", http.StatusInternalServerError)
+		return
+	}
+
+	script, err := iso.CompileUnboundScript(string(scriptStr), "main.js", v8.CompileOptions{})
 	if err != nil {
 		http.Error(w, "Failed to compile script", http.StatusInternalServerError)
 		return
@@ -78,13 +75,11 @@ func workerHandler(w http.ResponseWriter, r *http.Request) {
 
 	val, err := script.Run(ctx)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, "Failed to run script", http.StatusInternalServerError)
 		return
 	}
-
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(val.String()))
+	fmt.Println(val)
 }
 
 func main() {
