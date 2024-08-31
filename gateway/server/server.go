@@ -48,7 +48,7 @@ func (h *Handler) HandleRequest(r *http.Request) (*WorkerResponse, error) {
 	ctx := context.Background()
 
 	promiseScript := promise.New(func(resolve func(string), reject func(error)) {
-		script, err := h.scriptFetcher.FetchScript(ctx, r.Host)
+		script, err := h.scriptFetcher.FetchScript(ctx, r.URL.Hostname())
 		if err != nil {
 			reject(err)
 		}
