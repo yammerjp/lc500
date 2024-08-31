@@ -17,8 +17,8 @@ type VM struct {
 }
 
 type VMContext struct {
-	httpRequest    *http.Request
-	injectedParams map[string]string
+	httpRequest       *http.Request
+	additionalContext map[string]string
 }
 
 func NewVM() *VM {
@@ -27,10 +27,10 @@ func NewVM() *VM {
 	}
 }
 
-func NewVMContext(r *http.Request, injectedParams map[string]string) *VMContext {
+func NewVMContext(r *http.Request, additionalContext map[string]string) *VMContext {
 	return &VMContext{
-		httpRequest:    r,
-		injectedParams: injectedParams,
+		httpRequest:       r,
+		additionalContext: additionalContext,
 	}
 }
 
@@ -107,12 +107,12 @@ func (vm *VM) SetContext(vmCtx *VMContext) error {
 		return err
 	}
 
-	err = globalThis.Set("readInjectedParam", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+	err = globalThis.Set("readAdditionalContext", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		key := info.Args()[0].String()
-		slog.Info("reading injected param", "key", key)
-		val, ok := vmCtx.injectedParams[key]
+		slog.Info("reading additional context", "key", key)
+		val, ok := vmCtx.additionalContext[key]
 		if !ok {
-			slog.Error("injected param not found", "key", key)
+			slog.Error("additional context not found", "key", key)
 			return nil
 		}
 		v8val, err := v8.NewValue(vm.iso, val)

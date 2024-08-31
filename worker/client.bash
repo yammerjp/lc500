@@ -3,7 +3,7 @@
 set -ex
 
 vmid=$(curl 'http://localhost:8080/vm/init')
-script='renderBody(readBody() + readInjectedParam("foo"))'
+script='renderBody(readBody() + readAdditionalContext("foo"))'
 curl "http://localhost:8080/vm/compile?vmid=$vmid" -d "$script"
 curl "http://localhost:8080/vm/setcontext?vmid=$vmid" -d '
 {
@@ -15,7 +15,7 @@ curl "http://localhost:8080/vm/setcontext?vmid=$vmid" -d '
                 },
                 "body": "{\"body\":\"bodyval\"}"
         },
-        "injectedParams": {
+        "additionalContext": {
                 "foo": "bar"
         }
 }'

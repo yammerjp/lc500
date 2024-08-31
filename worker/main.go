@@ -108,7 +108,7 @@ func main() {
 				Headers map[string]string `json:"headers"`
 				Body    string            `json:"body"`
 			} `json:"httpRequest"`
-			InjectedParams map[string]string `json:"injectedParams"`
+			AdditionalContext map[string]string `json:"additionalContext"`
 		}
 
 		// json parse
@@ -130,7 +130,7 @@ func main() {
 			req.Header.Set(k, v)
 		}
 
-		vmCtx := lc500Vm.NewVMContext(req, vmCtxReq.InjectedParams)
+		vmCtx := lc500Vm.NewVMContext(req, vmCtxReq.AdditionalContext)
 		err = pool.SetContext(vmid, vmCtx)
 		if err != nil {
 			slog.Error("failed to set context", "error", err)
