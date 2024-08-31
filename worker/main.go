@@ -65,7 +65,7 @@ func main() {
 				Headers map[string]string `json:"headers"`
 				Body    string            `json:"body"`
 			} `json:"httpRequest"`
-			AdditionalContext map[string]string `json:"additionalContext"`
+			AdditionalContext string `json:"additionalContext"`
 		}
 
 		// json parse

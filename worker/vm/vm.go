@@ -18,7 +18,7 @@ type VM struct {
 
 type VMContext struct {
 	httpRequest       *http.Request
-	additionalContext map[string]string
+	additionalContext string
 }
 
 func NewVM() *VM {
@@ -27,7 +27,7 @@ func NewVM() *VM {
 	}
 }
 
-func NewVMContext(r *http.Request, additionalContext map[string]string) *VMContext {
+func NewVMContext(r *http.Request, additionalContext string) *VMContext {
 	return &VMContext{
 		httpRequest:       r,
 		additionalContext: additionalContext,
@@ -108,14 +108,7 @@ func (vm *VM) SetContext(vmCtx *VMContext) error {
 	}
 
 	err = globalThis.Set("readAdditionalContext", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
-		key := info.Args()[0].String()
-		slog.Info("reading additional context", "key", key)
-		val, ok := vmCtx.additionalContext[key]
-		if !ok {
-			slog.Error("additional context not found", "key", key)
-			return nil
-		}
-		v8val, err := v8.NewValue(vm.iso, val)
+		v8val, err := v8.NewValue(vm.iso, vmCtx.additionalContext)
 		if err != nil {
 			slog.Error("failed to create value", "error", err)
 			return nil
