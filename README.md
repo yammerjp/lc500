@@ -1,5 +1,7 @@
 # lc500
 
+![logo](logo.png)
+
 lc500 is a multi-tenant JavaScript hosting web server. It leverages V8 Isolates to provide isolated environments for each HTTP request, allowing them to be processed individually using JavaScript and return responses accordingly.
 
 ## Key Features
