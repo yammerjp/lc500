@@ -2,7 +2,7 @@
 
 set -e
 
-export vmid="$(grpcurl -plaintext  localhost:8080 api.Worker.InitVM | jq -r '.vmid')"
+export vmid="$(grpcurl -plaintext  localhost:8080 v1.Worker.InitVM | jq -r '.vmid')"
 
 echo "VMID: $vmid"
 
@@ -21,6 +21,6 @@ export context='
   "additionalContext": "o-ma-ke"
 }'
 
-grpcurl -plaintext -d "$(echo '{}' | jq -n '{"vmid":env.vmid, "script": env.script}')" localhost:8080 api.Worker.Compile
-grpcurl -plaintext -d "$(echo "$context" | jq '.vmid=env.vmid')" localhost:8080 api.Worker.SetContext
-grpcurl -plaintext -d "{\"vmid\":\"$vmid\"}" localhost:8080 api.Worker.Run
+grpcurl -plaintext -d "$(echo '{}' | jq -n '{"vmid":env.vmid, "script": env.script}')" localhost:8080 v1.Worker.Compile
+grpcurl -plaintext -d "$(echo "$context" | jq '.vmid=env.vmid')" localhost:8080 v1.Worker.SetContext
+grpcurl -plaintext -d "{\"vmid\":\"$vmid\"}" localhost:8080 v1.Worker.Run

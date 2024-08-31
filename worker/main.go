@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/yammerjp/lc500/worker/api"
+	api "github.com/yammerjp/lc500/proto/api/v1"
 	"github.com/yammerjp/lc500/worker/server"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"

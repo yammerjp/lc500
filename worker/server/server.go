@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/yammerjp/lc500/worker/api"
+	api "github.com/yammerjp/lc500/proto/api/v1"
 	"github.com/yammerjp/lc500/worker/pool"
 	"github.com/yammerjp/lc500/worker/response"
 	"github.com/yammerjp/lc500/worker/vm"

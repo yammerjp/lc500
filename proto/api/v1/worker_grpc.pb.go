@@ -4,7 +4,7 @@
 // - protoc             v5.27.3
 // source: worker.proto
 
-package api
+package v1
 
 import (
 	context "context"
@@ -19,11 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Worker_InitVM_FullMethodName     = "/api.Worker/InitVM"
-	Worker_DisposeVM_FullMethodName  = "/api.Worker/DisposeVM"
-	Worker_Compile_FullMethodName    = "/api.Worker/Compile"
-	Worker_SetContext_FullMethodName = "/api.Worker/SetContext"
-	Worker_Run_FullMethodName        = "/api.Worker/Run"
+	Worker_InitVM_FullMethodName     = "/v1.Worker/InitVM"
+	Worker_DisposeVM_FullMethodName  = "/v1.Worker/DisposeVM"
+	Worker_Compile_FullMethodName    = "/v1.Worker/Compile"
+	Worker_SetContext_FullMethodName = "/v1.Worker/SetContext"
+	Worker_Run_FullMethodName        = "/v1.Worker/Run"
 )
 
 // WorkerClient is the client API for Worker service.
@@ -244,7 +244,7 @@ func _Worker_Run_Handler(srv interface{}, ctx context.Context, dec func(interfac
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Worker_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "api.Worker",
+	ServiceName: "v1.Worker",
 	HandlerType: (*WorkerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

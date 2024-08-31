@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-option go_package = "github.com/yammerjp/lc500/worker/api";
+option go_package = "github.com/yammerjp/lc500/proto/api/v1";
 
-package api;
+package v1;
 
 service Worker {
   rpc InitVM(InitVMRequest) returns (InitVMResponse) {}
