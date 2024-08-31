@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	api "github.com/yammerjp/lc500/api"
+	api "github.com/yammerjp/lc500/worker/api"
 
 	"log/slog"
 )
