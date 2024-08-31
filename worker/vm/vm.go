@@ -17,7 +17,8 @@ type VM struct {
 }
 
 type VMContext struct {
-	request *http.Request
+	httpRequest    *http.Request
+	injectedParams map[string]string
 }
 
 func NewVM() *VM {
@@ -26,9 +27,10 @@ func NewVM() *VM {
 	}
 }
 
-func NewVMContext(r *http.Request) *VMContext {
+func NewVMContext(r *http.Request, injectedParams map[string]string) *VMContext {
 	return &VMContext{
-		request: r,
+		httpRequest:    r,
+		injectedParams: injectedParams,
 	}
 }
 
@@ -56,7 +58,7 @@ func (vm *VM) SetContext(vmCtx *VMContext) error {
 	}
 	globalThis := v8.NewObjectTemplate(vm.iso)
 	err := globalThis.Set("readHeader", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
-		val, err := v8.NewValue(vm.iso, vmCtx.request.Header.Get(info.Args()[0].String()))
+		val, err := v8.NewValue(vm.iso, vmCtx.httpRequest.Header.Get(info.Args()[0].String()))
 		if err != nil {
 			slog.Error("failed to create value", "error", err)
 			str, err := v8.NewValue(vm.iso, "failed to create value")
@@ -75,7 +77,7 @@ func (vm *VM) SetContext(vmCtx *VMContext) error {
 	}
 
 	err = globalThis.Set("readBody", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
-		body, err := io.ReadAll(vmCtx.request.Body)
+		body, err := io.ReadAll(vmCtx.httpRequest.Body)
 		if err != nil {
 			slog.Error("failed to read body", "error", err)
 			str, err := v8.NewValue(vm.iso, "failed to read body")
@@ -100,6 +102,25 @@ func (vm *VM) SetContext(vmCtx *VMContext) error {
 			return nil
 		}
 		return val
+	}))
+	if err != nil {
+		return err
+	}
+
+	err = globalThis.Set("readInjectedParam", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		key := info.Args()[0].String()
+		slog.Info("reading injected param", "key", key)
+		val, ok := vmCtx.injectedParams[key]
+		if !ok {
+			slog.Error("injected param not found", "key", key)
+			return nil
+		}
+		v8val, err := v8.NewValue(vm.iso, val)
+		if err != nil {
+			slog.Error("failed to create value", "error", err)
+			return nil
+		}
+		return v8val
 	}))
 	if err != nil {
 		return err
