@@ -10,7 +10,7 @@ import (
 	"os/signal"
 	"strings"
 
-	api "github.com/yammerjp/lc500/worker/api"
+	api "github.com/yammerjp/lc500/api"
 	"github.com/yammerjp/lc500/worker/pool"
 	"github.com/yammerjp/lc500/worker/response"
 	"github.com/yammerjp/lc500/worker/vm"

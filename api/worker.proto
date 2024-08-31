@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/yammerjp/lc500/worker/api";
+option go_package = "github.com/yammerjp/lc500/api";
 
 package api;
 

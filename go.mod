@@ -1,6 +1,6 @@
-module github.com/yammerjp/lc500/worker
+module github.com/yammerjp/lc500
 
-go 1.22.4
+go 1.23.0
 
 require (
 	github.com/google/uuid v1.6.0
