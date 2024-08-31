@@ -50,7 +50,7 @@ func (s *Server) SetContext(ctx context.Context, req *api.SetContextRequest) (*a
 
 func (s *Server) Run(ctx context.Context, req *api.RunRequest) (*api.RunResponse, error) {
 	receiver := response.NewReciever()
-	err := s.vmPool.Run(req.Vmid, receiver)
+	err := s.vmPool.Run(req.Vmid, receiver, req.Dispose)
 	if err != nil {
 		return nil, err
 	}

@@ -68,8 +68,15 @@ var runCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		dispose, err := cmd.Flags().GetBool("dispose")
+		if err != nil {
+			log.Fatalf("failed to get dispose: %v", err)
+			os.Exit(1)
+		}
+
 		res, err := client.Run(context.Background(), &api.RunRequest{
-			Vmid: vmid,
+			Vmid:    vmid,
+			Dispose: dispose,
 		})
 		if err != nil {
 			log.Fatalf("failed to run: %v", err)
@@ -95,6 +102,8 @@ func init() {
 
 	runCmd.Flags().String("vmid", "", "vm id")
 	runCmd.Flags().String("vmidfile", "", "file to read vm id")
+
+	runCmd.Flags().Bool("dispose", false, "dispose vm after run")
 
 	// Here you will define your flags and configuration settings.
 

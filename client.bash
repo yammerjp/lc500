@@ -23,4 +23,4 @@ export context='
 
 grpcurl -plaintext -d "$(echo '{}' | jq -n '{"vmid":env.vmid, "script": env.script}')" localhost:8080 v1.Worker.Compile
 grpcurl -plaintext -d "$(echo "$context" | jq '.vmid=env.vmid')" localhost:8080 v1.Worker.SetContext
-grpcurl -plaintext -d "{\"vmid\":\"$vmid\"}" localhost:8080 v1.Worker.Run
+grpcurl -plaintext -d "{\"vmid\":\"$vmid\", \"dispose\":true}" localhost:8080 v1.Worker.Run

@@ -72,12 +72,15 @@ func (p *Pool) SetContext(key string, context *lc500Vm.VMContext) error {
 	return vm.SetContext(context)
 }
 
-func (p *Pool) Run(key string, w http.ResponseWriter) error {
+func (p *Pool) Run(key string, w http.ResponseWriter, dispose bool) error {
 	vm := p.get(key)
 	if vm == nil {
 		return errors.New("vm not found")
 	}
 	vm.SetResponseWriter(w)
+	if dispose {
+		defer p.Dispose(key)
+	}
 	return vm.RunScript()
 }
 

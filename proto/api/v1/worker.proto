@@ -48,6 +48,7 @@ message SetContextResponse {
 
 message RunRequest {
   string vmid = 1;
+  bool dispose = 2;
 }
 
 message RunResponse {

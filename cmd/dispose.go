@@ -22,28 +22,65 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
+	"context"
+	"log"
+	"os"
 
 	"github.com/spf13/cobra"
+	api "github.com/yammerjp/lc500/proto/api/v1"
 )
 
 // disposeCmd represents the dispose command
 var disposeCmd = &cobra.Command{
 	Use:   "dispose",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Dispose a VM",
+	Long:  `Dispose a VM`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("dispose called")
+		vmid, err := cmd.Flags().GetString("vmid")
+		if err != nil {
+			log.Fatalf("failed to get vmid: %v", err)
+			os.Exit(1)
+		}
+		vmidfile, err := cmd.Flags().GetString("vmidfile")
+		if err != nil {
+			log.Fatalf("failed to get vmidfile: %v", err)
+			os.Exit(1)
+		}
+		if vmid == "" && vmidfile != "" {
+			vmidBytes, err := os.ReadFile(vmidfile)
+			if err != nil {
+				log.Fatalf("failed to read vmidfile: %v", err)
+				os.Exit(1)
+			}
+			vmid = string(vmidBytes)
+		}
+		if vmid == "" {
+			log.Fatalf("vmid is required")
+			os.Exit(1)
+		}
+
+		client, close, err := NewClient(cmd)
+		if err != nil {
+			log.Fatalf("failed to create client: %v", err)
+			os.Exit(1)
+		}
+		defer close()
+
+		_, err = client.DisposeVM(context.Background(), &api.DisposeVMRequest{
+			Vmid: vmid,
+		})
+		if err != nil {
+			log.Fatalf("failed to dispose: %v", err)
+			os.Exit(1)
+		}
 	},
 }
 
 func init() {
 	vmCmd.AddCommand(disposeCmd)
+
+	disposeCmd.Flags().String("vmid", "", "VM ID")
+	disposeCmd.Flags().String("vmidfile", "", "file to read VM ID")
 
 	// Here you will define your flags and configuration settings.
 
