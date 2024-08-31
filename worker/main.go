@@ -9,52 +9,9 @@ import (
 	"strings"
 
 	"github.com/yammerjp/lc500/worker/pool"
+	"github.com/yammerjp/lc500/worker/response"
 	lc500Vm "github.com/yammerjp/lc500/worker/vm"
 )
-
-type dummyResponseWriter struct {
-	io.Writer
-	headers    http.Header
-	statusCode int
-	body       []byte
-}
-
-func (d *dummyResponseWriter) Header() http.Header {
-	return d.headers
-}
-
-func (d *dummyResponseWriter) WriteHeader(statusCode int) {
-	d.statusCode = statusCode
-}
-
-func (d *dummyResponseWriter) Write(body []byte) (int, error) {
-	d.body = append(d.body, body...)
-	return len(body), nil
-}
-
-func (d *dummyResponseWriter) ToJSON() string {
-	response := map[string]interface{}{
-		"statusCode": d.statusCode,
-		"headers":    d.headers,
-		"body":       string(d.body),
-	}
-
-	jsonResponse, err := json.Marshal(response)
-	if err != nil {
-		slog.Error("failed to marshal response to JSON", "error", err)
-		return "{}"
-	}
-
-	return string(jsonResponse)
-}
-
-func NewDummyResponseWriter() *dummyResponseWriter {
-	return &dummyResponseWriter{
-		headers:    make(http.Header),
-		statusCode: 200,
-		body:       []byte{},
-	}
-}
 
 func main() {
 	pool := pool.NewPool()
@@ -144,8 +101,8 @@ func main() {
 	http.HandleFunc("/vm/run", func(w http.ResponseWriter, r *http.Request) {
 		vmid := r.URL.Query().Get("vmid")
 
-		dw := NewDummyResponseWriter()
-		err := pool.Run(vmid, dw)
+		receiver := response.NewReciever()
+		err := pool.Run(vmid, receiver)
 		if err != nil {
 			slog.Error("failed to run script", "error", err)
 			http.Error(w, "Failed to run script", http.StatusInternalServerError)
@@ -154,7 +111,7 @@ func main() {
 		pool.Dispose(vmid)
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(dw.ToJSON()))
+		w.Write([]byte(receiver.ToJSON()))
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
