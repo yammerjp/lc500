@@ -23,69 +23,56 @@ package cmd
 
 import (
 	"fmt"
-	"log/slog"
-	"net"
-	"os"
-	"os/signal"
+	"net/http"
 
 	"github.com/spf13/cobra"
-	api "github.com/yammerjp/lc500/proto/api/v1"
-	"github.com/yammerjp/lc500/worker/server"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
+	"github.com/yammerjp/lc500/gateway/server"
 )
 
-// port option
-
 // serveCmd represents the serve command
-var serveCmd = &cobra.Command{
+var gatewayServeCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "Start the v8 isolate worker server",
-	Long:  `Start the v8 isolate worker server`,
+	Short: "Start the gateway server",
+	Long:  `Start the gateway server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
-
-		// port
 		port, err := cmd.Flags().GetInt("port")
 		if err != nil {
 			panic(err)
 		}
-
-		s := grpc.NewServer()
-		api.RegisterWorkerServer(s, server.NewServer())
-		if cmd.Flags().Changed("reflection") {
-			reflection.Register(s)
-		}
-
-		listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+		workerEndpoint, err := cmd.Flags().GetString("worker-endpoint")
 		if err != nil {
-			slog.Error("failed to listen", "error", err)
-			os.Exit(1)
+			panic(err)
 		}
-		defer listener.Close()
+		blueprintEndpoint, err := cmd.Flags().GetString("blueprint-endpoint")
+		if err != nil {
+			panic(err)
+		}
 
-		go func() {
-			slog.Info(fmt.Sprintf("start gRPC server on port %d", port))
-			if err := s.Serve(listener); err != nil {
-				slog.Error("failed to serve", "error", err)
-				os.Exit(1)
-			}
-		}()
-
-		quit := make(chan os.Signal, 1)
-		signal.Notify(quit, os.Interrupt)
-		<-quit
-		slog.Info("stopping gRPC server...")
-		s.GracefulStop()
-		slog.Info("gRPC server stopped")
+		b := &server.HandlerBuilder{
+			WorkerEndpoint:    workerEndpoint,
+			BlueprintEndpoint: blueprintEndpoint,
+		}
+		handler, close, err := server.NewHandler(b)
+		if err != nil {
+			panic(err)
+		}
+		err = http.ListenAndServe(fmt.Sprintf(":%d", port), handler)
+		if err != nil {
+			panic(err)
+		}
+		close()
 	},
 }
 
 func init() {
-	workerCmd.AddCommand(serveCmd)
-	serveCmd.Flags().IntP("port", "p", 8080, "The port to listen on")
-	// reflection option
-	serveCmd.Flags().BoolP("reflection", "r", false, "Enable reflection")
+	gatewayCmd.AddCommand(gatewayServeCmd)
+	gatewayServeCmd.Flags().IntP("port", "p", 8080, "Port to listen on")
+
+	gatewayServeCmd.Flags().StringP("worker-endpoint", "w", "http://localhost:8081", "Worker server endpoint")
+	gatewayServeCmd.MarkFlagRequired("worker-endpoint")
+
+	gatewayServeCmd.Flags().StringP("blueprint-endpoint", "b", "http://localhost:8082", "Blueprint server endpoint")
+	gatewayServeCmd.MarkFlagRequired("blueprint-endpoint")
 
 	// Here you will define your flags and configuration settings.
 

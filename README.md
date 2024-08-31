@@ -21,3 +21,28 @@ lc500 is a multi-tenant JavaScript hosting web server. It leverages V8 Isolates 
 5. After processing, the isolate is disposed of, ensuring a clean slate for the next request.
 
 This architecture ensures that each request is handled in a secure, isolated manner, preventing cross-request interference and enhancing overall system security and stability.
+
+## Request Processing Flow
+
+```mermaid
+sequenceDiagram
+
+    actor User
+    User->>Gateway: Send HTTP request
+
+    par Initialize V8 isolate context and Fetch script and context
+        Gateway->>Worker: Initialize V8 isolate context
+        Gateway->>Script Storage: Fetch script
+        Gateway->>Context Storage: Request context
+    end
+
+    Worker->>Gateway: V8 isolate context initialized
+    Script Storage->>Gateway: Return script
+    Context Storage->>Gateway: Return context
+    Gateway->>Worker: Pass script and ready to run
+    Gateway->>Worker: Pass context
+    Worker->>Worker: Execute script
+    Worker->>Gateway: Return execution result
+    Gateway->>User: Send HTTP response
+```
+
