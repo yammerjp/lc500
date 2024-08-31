@@ -55,10 +55,9 @@ func (d *Reciever) ToJSON() string {
 }
 
 func (d *Reciever) ToGrpc() *api.RunResponse {
-	// TODO: handle multiple values
-	headers := make(map[string]string)
+	headers := make(map[string]*api.HeaderValue)
 	for key, value := range d.headers {
-		headers[key] = value[0]
+		headers[key] = &api.HeaderValue{Values: value}
 	}
 	return &api.RunResponse{
 		HttpResponseStatusCode: int32(d.statusCode),

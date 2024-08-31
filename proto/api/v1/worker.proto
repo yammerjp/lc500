@@ -39,11 +39,15 @@ message SetContextRequest {
   string httpRequestMethod = 2;
   string httpRequestUrl = 3;
   string httpRequestBody = 4;
-  map<string, string> httpRequestHeaders = 5;
+  map<string, HeaderValue> httpRequestHeaders = 5;
   string additionalContext = 6;
 }
 
 message SetContextResponse {
+}
+
+message HeaderValue {
+  repeated string values = 1;
 }
 
 message RunRequest {
@@ -53,6 +57,6 @@ message RunRequest {
 
 message RunResponse {
   int32 httpResponseStatusCode = 1;
-  map<string, string> httpResponseHeaders = 2;
+  map<string, HeaderValue> httpResponseHeaders = 2;
   string httpResponseBody = 3;
 }

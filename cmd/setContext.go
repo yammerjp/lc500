@@ -82,14 +82,18 @@ var setContextCmd = &cobra.Command{
 			log.Fatalf("failed to get headers: %v", err)
 			os.Exit(1)
 		}
-		headers := make(map[string]string)
+		headers := make(map[string]*api.HeaderValue)
 		for _, header := range headersSlice {
 			parts := strings.SplitN(header, ":", 2)
 			if len(parts) != 2 {
 				log.Fatalf("invalid header format: %s", header)
 				os.Exit(1)
 			}
-			headers[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+			if headers[parts[0]] == nil {
+				headers[parts[0]] = &api.HeaderValue{Values: []string{parts[1]}}
+			} else {
+				headers[parts[0]].Values = append(headers[parts[0]].Values, parts[1])
+			}
 		}
 		body, err := cmd.Flags().GetString("body")
 		if err != nil {

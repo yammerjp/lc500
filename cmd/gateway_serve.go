@@ -39,7 +39,11 @@ var gatewayServeCmd = &cobra.Command{
 		if err != nil {
 			panic(err)
 		}
-		workerEndpoint, err := cmd.Flags().GetString("worker-endpoint")
+		workerTarget, err := cmd.Flags().GetString("worker-target")
+		if err != nil {
+			panic(err)
+		}
+		workerInsecure, err := cmd.Flags().GetBool("worker-insecure")
 		if err != nil {
 			panic(err)
 		}
@@ -48,19 +52,16 @@ var gatewayServeCmd = &cobra.Command{
 			panic(err)
 		}
 
-		b := &server.HandlerBuilder{
-			WorkerEndpoint:    workerEndpoint,
-			BlueprintEndpoint: blueprintEndpoint,
-		}
-		handler, close, err := server.NewHandler(b)
+		h, err := server.NewHandler(workerTarget, workerInsecure, blueprintEndpoint)
 		if err != nil {
 			panic(err)
 		}
-		err = http.ListenAndServe(fmt.Sprintf(":%d", port), handler)
+		defer h.Close()
+
+		err = http.ListenAndServe(fmt.Sprintf(":%d", port), h)
 		if err != nil {
 			panic(err)
 		}
-		close()
 	},
 }
 
@@ -68,12 +69,11 @@ func init() {
 	gatewayCmd.AddCommand(gatewayServeCmd)
 	gatewayServeCmd.Flags().IntP("port", "p", 8080, "Port to listen on")
 
-	gatewayServeCmd.Flags().StringP("worker-endpoint", "w", "http://localhost:8081", "Worker server endpoint")
-	gatewayServeCmd.MarkFlagRequired("worker-endpoint")
+	// worker host worker port worker insecure
+	gatewayServeCmd.Flags().StringP("worker-target", "wt", "localhost:8081", "Worker server target")
+	gatewayServeCmd.Flags().BoolP("worker-insecure", "wi", false, "Worker server insecure")
 
-	gatewayServeCmd.Flags().StringP("blueprint-endpoint", "b", "http://localhost:8082", "Blueprint server endpoint")
-	gatewayServeCmd.MarkFlagRequired("blueprint-endpoint")
-
+	gatewayServeCmd.Flags().StringP("blueprint-endpoint", "be", "http://localhost:8082", "Blueprint server endpoint")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
