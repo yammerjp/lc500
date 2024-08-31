@@ -60,8 +60,10 @@ func (d *Reciever) ToGrpc() *api.RunResponse {
 		headers[key] = &api.HeaderValue{Values: value}
 	}
 	return &api.RunResponse{
-		HttpResponseStatusCode: int32(d.statusCode),
-		HttpResponseHeaders:    headers,
-		HttpResponseBody:       string(d.body),
+		HttpResponse: &api.HttpResponse{
+			StatusCode: int32(d.statusCode),
+			Headers:    headers,
+			Body:       string(d.body),
+		},
 	}
 }

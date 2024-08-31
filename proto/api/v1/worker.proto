@@ -36,11 +36,21 @@ message CompileResponse {
 
 message SetContextRequest {
   string vmid = 1;
-  string httpRequestMethod = 2;
-  string httpRequestUrl = 3;
-  string httpRequestBody = 4;
-  map<string, HeaderValue> httpRequestHeaders = 5;
-  string additionalContext = 6;
+  HttpRequest httpRequest = 2;
+  HttpResponse httpResponse = 3;
+}
+
+message HttpRequest {
+  string method = 1;
+  string url = 2;
+  string body = 3;
+  map<string, HeaderValue> headers = 4;
+}
+
+message HttpResponse {
+  int32 statusCode = 1;
+  map<string, HeaderValue> headers = 2;
+  string body = 3;
 }
 
 message SetContextResponse {
@@ -56,7 +66,5 @@ message RunRequest {
 }
 
 message RunResponse {
-  int32 httpResponseStatusCode = 1;
-  map<string, HeaderValue> httpResponseHeaders = 2;
-  string httpResponseBody = 3;
+  HttpResponse httpResponse = 1;
 }

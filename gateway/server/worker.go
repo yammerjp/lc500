@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"net/http"
@@ -65,29 +64,34 @@ func (w *WorkerRequest) Compile(script string) error {
 	return err
 }
 
-func (w *WorkerRequest) Run(additionalContext string) (*WorkerResponse, error) {
-	headers := make(map[string][]string)
-	for k, v := range w.Req.Header {
-		headers[k] = v
+func (w *WorkerRequest) Run(req *http.Request, res *http.Response) (*WorkerResponse, error) {
+	workerHeaders := make(map[string]*workerapi.HeaderValue)
+	for k, v := range req.Header {
+		workerHeaders[k] = &workerapi.HeaderValue{Values: v}
 	}
-	bodyAll, err := io.ReadAll(w.Req.Body)
+	requestBody, err := io.ReadAll(req.Body)
 	if err != nil {
 		return nil, err
 	}
-	w.Req.Body = io.NopCloser(bytes.NewReader(bodyAll))
-	workerHeaders := make(map[string]*workerapi.HeaderValue)
-	for k, v := range headers {
-		workerHeaders[k] = &workerapi.HeaderValue{Values: v}
+	responseBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
 	}
-	req := workerapi.SetContextRequest{
-		Vmid:               w.Vmid,
-		HttpRequestMethod:  w.Req.Method,
-		HttpRequestHeaders: workerHeaders,
-		HttpRequestBody:    string(bodyAll),
-		HttpRequestUrl:     w.Req.URL.String(),
-		AdditionalContext:  additionalContext,
+	setContextReq := &workerapi.SetContextRequest{
+		Vmid: w.Vmid,
+		HttpRequest: &workerapi.HttpRequest{
+			Method:  w.Req.Method,
+			Url:     w.Req.URL.String(),
+			Headers: workerHeaders,
+			Body:    string(requestBody),
+		},
+		HttpResponse: &workerapi.HttpResponse{
+			StatusCode: int32(w.Req.Response.StatusCode),
+			Headers:    workerHeaders,
+			Body:       string(responseBody),
+		},
 	}
-	if _, err = w.Client.Client.SetContext(w.Ctx, &req); err != nil {
+	if _, err = w.Client.Client.SetContext(w.Ctx, setContextReq); err != nil {
 		return nil, err
 	}
 
@@ -106,11 +110,11 @@ type WorkerResponse struct {
 }
 
 func (w *WorkerResponse) WriteTo(rw http.ResponseWriter) {
-	rw.WriteHeader(int(w.HttpResponseStatusCode))
-	for k, v := range w.HttpResponseHeaders {
+	rw.WriteHeader(int(w.HttpResponse.StatusCode))
+	for k, v := range w.HttpResponse.Headers {
 		for _, value := range v.Values {
 			rw.Header().Add(k, value)
 		}
 	}
-	rw.Write([]byte(w.HttpResponseBody))
+	rw.Write([]byte(w.HttpResponse.Body))
 }

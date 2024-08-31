@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -26,38 +25,6 @@ func (f *BlueprintFetcher) Scheme() string {
 		return ""
 	}
 	return blueprintUrl.Scheme
-}
-
-type BlueprintResponse struct {
-	Status  int                 `json:"status"`
-	Headers map[string][]string `json:"headers"`
-	Body    string              `json:"body"`
-}
-
-func NewBlueprintResponse(res *http.Response) (*BlueprintResponse, error) {
-	bodyBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-	body := string(bodyBytes)
-	headers := make(map[string][]string)
-	for k, v := range res.Header {
-		headers[k] = v
-	}
-
-	return &BlueprintResponse{
-		Status:  res.StatusCode,
-		Headers: headers,
-		Body:    body,
-	}, nil
-}
-
-func (r *BlueprintResponse) ToString() (string, error) {
-	jsonBytes, err := json.Marshal(r)
-	if err != nil {
-		return "", err
-	}
-	return string(jsonBytes), nil
 }
 
 func (f *BlueprintFetcher) NewBlueprintRequest(r *http.Request) (*http.Request, error) {
@@ -87,24 +54,20 @@ func (f *BlueprintFetcher) NewBlueprintRequest(r *http.Request) (*http.Request, 
 	return req, nil
 }
 
-func (f *BlueprintFetcher) FetchBlueprint(r *http.Request) (string, error) {
+func (f *BlueprintFetcher) Fetch(r *http.Request) (*http.Response, error) {
 	req, err := f.NewBlueprintRequest(r)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", err
+	// redirect no follow
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
-	defer res.Body.Close()
-
-	br, err := NewBlueprintResponse(res)
-	if err != nil {
-		return "", err
-	}
-	return br.ToString()
+	return client.Do(req)
 }
 
-func NewBlueprintFetcher(endpoint string) *BlueprintFetcher {
+func NewtFetcher(endpoint string) *BlueprintFetcher {
 	return &BlueprintFetcher{endpoint: endpoint}
 }

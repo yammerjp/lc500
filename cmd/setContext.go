@@ -67,57 +67,72 @@ var setContextCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		method, err := cmd.Flags().GetString("method")
+		method, err := cmd.Flags().GetString("request-method")
 		if err != nil {
-			log.Fatalf("failed to get method: %v", err)
+			log.Fatalf("failed to get request-	method: %v", err)
 			os.Exit(1)
 		}
-		url, err := cmd.Flags().GetString("url")
+		url, err := cmd.Flags().GetString("request-url")
 		if err != nil {
-			log.Fatalf("failed to get url: %v", err)
+			log.Fatalf("failed to get request-url: %v", err)
 			os.Exit(1)
 		}
-		headersSlice, err := cmd.Flags().GetStringSlice("headers")
+		requestHeadersSlice, err := cmd.Flags().GetStringSlice("request-	headers")
 		if err != nil {
-			log.Fatalf("failed to get headers: %v", err)
+			log.Fatalf("failed to get request-headers: %v", err)
 			os.Exit(1)
 		}
-		headers := make(map[string]*api.HeaderValue)
-		for _, header := range headersSlice {
+		requestHeaders := make(map[string]*api.HeaderValue)
+		for _, header := range requestHeadersSlice {
 			parts := strings.SplitN(header, ":", 2)
 			if len(parts) != 2 {
 				log.Fatalf("invalid header format: %s", header)
 				os.Exit(1)
 			}
-			if headers[parts[0]] == nil {
-				headers[parts[0]] = &api.HeaderValue{Values: []string{parts[1]}}
+			if requestHeaders[parts[0]] == nil {
+				requestHeaders[parts[0]] = &api.HeaderValue{Values: []string{parts[1]}}
 			} else {
-				headers[parts[0]].Values = append(headers[parts[0]].Values, parts[1])
+				requestHeaders[parts[0]].Values = append(requestHeaders[parts[0]].Values, parts[1])
 			}
 		}
-		body, err := cmd.Flags().GetString("body")
+		body, err := cmd.Flags().GetString("request-body")
 		if err != nil {
-			log.Fatalf("failed to get body: %v", err)
+			log.Fatalf("failed to get request-body: %v", err)
 			os.Exit(1)
 		}
-		additionalContext, err := cmd.Flags().GetString("additionalContext")
+
+		statusCode, err := cmd.Flags().GetInt("response-status-code")
 		if err != nil {
-			log.Fatalf("failed to get additionalContext: %v", err)
+			log.Fatalf("failed to get response-status-code: %v", err)
 			os.Exit(1)
+		}
+		responseHeadersSlice, err := cmd.Flags().GetStringSlice("response-headers")
+		if err != nil {
+			log.Fatalf("failed to get response-headers: %v", err)
+			os.Exit(1)
+		}
+		responseHeaders := make(map[string]*api.HeaderValue)
+		for _, header := range responseHeadersSlice {
+			parts := strings.SplitN(header, ":", 2)
+			if len(parts) != 2 {
+				log.Fatalf("invalid header format: %s", header)
+				os.Exit(1)
+			}
 		}
 
 		contextReqest := api.SetContextRequest{
 			Vmid: vmid,
-		}
-
-		if method != "" && url != "" {
-			contextReqest.HttpRequestMethod = method
-			contextReqest.HttpRequestUrl = url
-			contextReqest.HttpRequestHeaders = headers
-			contextReqest.HttpRequestBody = body
-		}
-		if additionalContext != "" {
-			contextReqest.AdditionalContext = additionalContext
+			HttpResponse: &api.HttpResponse{
+				StatusCode: int32(statusCode),
+				Headers:    responseHeaders,
+				Body:       body,
+			},
+			HttpRequest: &api.HttpRequest{
+				Method:  method,
+				Url:     url,
+				Headers: requestHeaders,
+				Body:    body,
+			},
 		}
 
 		_, err = client.SetContext(context.Background(), &contextReqest)
@@ -138,11 +153,13 @@ func init() {
 	setContextCmd.Flags().String("vmid", "", "vm id")
 	setContextCmd.Flags().String("vmidfile", "", "file to read vm id")
 
-	setContextCmd.Flags().String("method", "", "HTTP method")
-	setContextCmd.Flags().String("url", "", "HTTP URL")
-	setContextCmd.Flags().StringSlice("headers", []string{}, "HTTP headers")
-	setContextCmd.Flags().String("body", "", "HTTP body")
-	setContextCmd.Flags().String("additionalContext", "", "additional context")
+	setContextCmd.Flags().String("request-method", "", "HTTP method")
+	setContextCmd.Flags().String("request-url", "", "HTTP URL")
+	setContextCmd.Flags().StringSlice("request-headers", []string{}, "HTTP headers")
+	setContextCmd.Flags().String("request-body", "", "HTTP body")
+	setContextCmd.Flags().Int("response-status-code", 200, "HTTP status code")
+	setContextCmd.Flags().StringSlice("response-headers", []string{}, "HTTP headers")
+	setContextCmd.Flags().String("response-body", "", "HTTP body")
 
 	// Here you will define your flags and configuration settings.
 

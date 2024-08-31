@@ -2,13 +2,10 @@ package server
 
 import (
 	"context"
-	"net/http"
-	"strings"
 
 	api "github.com/yammerjp/lc500/proto/api/v1"
 	"github.com/yammerjp/lc500/worker/pool"
 	"github.com/yammerjp/lc500/worker/response"
-	"github.com/yammerjp/lc500/worker/vm"
 )
 
 type Server struct {
@@ -39,12 +36,10 @@ func (s *Server) Compile(ctx context.Context, req *api.CompileRequest) (*api.Com
 }
 
 func (s *Server) SetContext(ctx context.Context, req *api.SetContextRequest) (*api.SetContextResponse, error) {
-	httpRequest, err := http.NewRequest(req.HttpRequestMethod, req.HttpRequestUrl, strings.NewReader(req.HttpRequestBody))
+	err := s.vmPool.SetContext(req.Vmid, req)
 	if err != nil {
 		return nil, err
 	}
-	vmCtx := vm.NewVMContext(httpRequest, req.AdditionalContext)
-	s.vmPool.SetContext(req.Vmid, vmCtx)
 	return &api.SetContextResponse{}, nil
 }
 

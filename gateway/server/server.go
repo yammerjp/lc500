@@ -22,7 +22,7 @@ func NewHandler(workerTarget string, workerInsecure bool, blueprintEndpoint stri
 	if err != nil {
 		return nil, err
 	}
-	blueprintFetcher := NewBlueprintFetcher(blueprintEndpoint)
+	blueprintFetcher := &BlueprintFetcher{endpoint: blueprintEndpoint}
 
 	return &Handler{
 		workerClient:     workerClientWrapper,
@@ -55,8 +55,8 @@ func (h *Handler) HandleRequest(r *http.Request) (*WorkerResponse, error) {
 		resolve(script)
 	})
 
-	promiseBlueprint := promise.New(func(resolve func(string), reject func(error)) {
-		res, err := h.blueprintFetcher.FetchBlueprint(r)
+	promiseBlueprint := promise.New(func(resolve func(*http.Response), reject func(error)) {
+		res, err := h.blueprintFetcher.Fetch(r)
 		if err != nil {
 			reject(err)
 		}
@@ -77,10 +77,10 @@ func (h *Handler) HandleRequest(r *http.Request) (*WorkerResponse, error) {
 		return nil, err
 	}
 
-	additionalContext, err := promiseBlueprint.Await(ctx)
+	res, err := promiseBlueprint.Await(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return workerRequest.Run(*additionalContext)
+	return workerRequest.Run(r, *res)
 }

@@ -82,14 +82,14 @@ var runCmd = &cobra.Command{
 			log.Fatalf("failed to run: %v", err)
 			os.Exit(1)
 		}
-		statusMessage := http.StatusText(int(res.HttpResponseStatusCode))
-		fmt.Printf("HTTP/1.1 %d %s\n", res.HttpResponseStatusCode, statusMessage)
-		for key, header := range res.HttpResponseHeaders {
+		statusMessage := http.StatusText(int(res.HttpResponse.StatusCode))
+		fmt.Printf("HTTP/1.1 %d %s\n", res.HttpResponse.StatusCode, statusMessage)
+		for key, header := range res.HttpResponse.Headers {
 			fmt.Printf("%s: %s\n", key, header)
 		}
 		fmt.Println()
 
-		fmt.Println(res.HttpResponseBody)
+		fmt.Println(res.HttpResponse.Body)
 	},
 }
 
@@ -97,8 +97,7 @@ func init() {
 	vmCmd.AddCommand(runCmd)
 
 	runCmd.Flags().StringP("target", "t", "localhost:8080", "target address")
-	runCmd.Flags().BoolP("insecure", "i", false, "use insecure connection")
-	runCmd.Flags().StringP("format", "f", "text", "output format(json or text)")
+	runCmd.Flags().StringP("insecure", "i", "", "use insecure connection")
 
 	runCmd.Flags().String("vmid", "", "vm id")
 	runCmd.Flags().String("vmidfile", "", "file to read vm id")

@@ -7,6 +7,7 @@ import (
 
 	uuid "github.com/google/uuid"
 
+	api "github.com/yammerjp/lc500/proto/api/v1"
 	lc500Vm "github.com/yammerjp/lc500/worker/vm"
 )
 
@@ -64,7 +65,7 @@ func (p *Pool) CompileScript(key string, scriptStr string) error {
 	return vm.CompileScript(scriptStr)
 }
 
-func (p *Pool) SetContext(key string, context *lc500Vm.VMContext) error {
+func (p *Pool) SetContext(key string, context *api.SetContextRequest) error {
 	vm := p.get(key)
 	if vm == nil {
 		return errors.New("vm not found")

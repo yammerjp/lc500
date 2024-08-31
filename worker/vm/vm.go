@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	api "github.com/yammerjp/lc500/proto/api/v1"
 	v8 "rogchap.com/v8go"
 )
 
@@ -17,8 +18,8 @@ type VM struct {
 }
 
 type VMContext struct {
-	httpRequest       *http.Request
-	additionalContext string
+	httpRequest  *api.HttpRequest
+	httpResponse *api.HttpResponse
 }
 
 func NewVM() *VM {
@@ -27,11 +28,43 @@ func NewVM() *VM {
 	}
 }
 
-func NewVMContext(r *http.Request, additionalContext string) *VMContext {
-	return &VMContext{
-		httpRequest:       r,
-		additionalContext: additionalContext,
+func NewVMContext(r *http.Request, res *http.Response) (*VMContext, error) {
+	httpRequestHeaders := make(map[string]*api.HeaderValue)
+	for key, values := range r.Header {
+		httpRequestHeaders[key] = &api.HeaderValue{
+			Values: values,
+		}
 	}
+	httpRequestBody, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+	httpRequest := api.HttpRequest{
+		Method:  r.Method,
+		Url:     r.URL.String(),
+		Body:    string(httpRequestBody),
+		Headers: httpRequestHeaders,
+	}
+	httpResponseHeaders := make(map[string]*api.HeaderValue)
+	for key, values := range res.Header {
+		httpResponseHeaders[key] = &api.HeaderValue{
+			Values: values,
+		}
+	}
+	httpResponseBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	httpResponse := api.HttpResponse{
+		StatusCode: int32(res.StatusCode),
+		Body:       string(httpResponseBody),
+		Headers:    httpResponseHeaders,
+	}
+
+	return &VMContext{
+		httpRequest:  &httpRequest,
+		httpResponse: &httpResponse,
+	}, nil
 }
 
 func (vm *VM) CompileScript(scriptStr string) error {
@@ -49,7 +82,7 @@ func (vm *VM) CompileScript(scriptStr string) error {
 	return nil
 }
 
-func (vm *VM) SetContext(vmCtx *VMContext) error {
+func (vm *VM) SetContext(setContextReq *api.SetContextRequest) error {
 	if vm.iso == nil {
 		return errors.New("isolate not initialized")
 	}
@@ -57,8 +90,8 @@ func (vm *VM) SetContext(vmCtx *VMContext) error {
 		return errors.New("context already set")
 	}
 	globalThis := v8.NewObjectTemplate(vm.iso)
-	err := globalThis.Set("readHeader", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
-		val, err := v8.NewValue(vm.iso, vmCtx.httpRequest.Header.Get(info.Args()[0].String()))
+	if err := globalThis.Set("readRequestMethod", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		val, err := v8.NewValue(vm.iso, setContextReq.HttpRequest.Method)
 		if err != nil {
 			slog.Error("failed to create value", "error", err)
 			str, err := v8.NewValue(vm.iso, "failed to create value")
@@ -71,25 +104,26 @@ func (vm *VM) SetContext(vmCtx *VMContext) error {
 			return nil
 		}
 		return val
-	}))
-	if err != nil {
+	})); err != nil {
+		return err
+	}
+	if err := globalThis.Set("readRequestHeader", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		values := setContextReq.HttpRequest.Headers[info.Args()[0].String()]
+		if values == nil {
+			return nil
+		}
+		val, err := v8.NewValue(vm.iso, values.Values[0])
+		if err != nil {
+			slog.Error("failed to create value", "error", err)
+			return nil
+		}
+		return val
+	})); err != nil {
 		return err
 	}
 
-	err = globalThis.Set("readBody", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
-		body, err := io.ReadAll(vmCtx.httpRequest.Body)
-		if err != nil {
-			slog.Error("failed to read body", "error", err)
-			str, err := v8.NewValue(vm.iso, "failed to read body")
-			if err != nil {
-				slog.Error("failed to create error value, disposing isolate", "error", err)
-				vm.iso.Dispose()
-				return nil
-			}
-			vm.iso.ThrowException(str)
-			return nil
-		}
-		val, err := v8.NewValue(vm.iso, string(body))
+	if err := globalThis.Set("readRequestBody", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		val, err := v8.NewValue(vm.iso, setContextReq.HttpRequest.Body)
 		if err != nil {
 			slog.Error("failed to create value", "error", err)
 			str, err := v8.NewValue(vm.iso, "failed to create value")
@@ -102,44 +136,93 @@ func (vm *VM) SetContext(vmCtx *VMContext) error {
 			return nil
 		}
 		return val
-	}))
-	if err != nil {
+	})); err != nil {
 		return err
 	}
-
-	err = globalThis.Set("readAdditionalContext", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
-		v8val, err := v8.NewValue(vm.iso, vmCtx.additionalContext)
+	if err := globalThis.Set("readResponseStatusCode", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		val, err := v8.NewValue(vm.iso, setContextReq.HttpResponse.StatusCode)
+		if err != nil {
+			slog.Error("failed to create value", "error", err)
+			str, err := v8.NewValue(vm.iso, "failed to create value")
+			if err != nil {
+				slog.Error("failed to create error value, disposing isolate", "error", err)
+				vm.iso.Dispose()
+				return nil
+			}
+			vm.iso.ThrowException(str)
+			return nil
+		}
+		return val
+	})); err != nil {
+		return err
+	}
+	if err := globalThis.Set("readResponseHeader", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		values := setContextReq.HttpResponse.Headers[info.Args()[0].String()]
+		array := v8.NewObjectTemplate(vm.iso)
+		o, err := array.NewInstance(vm.ctx)
+		if err != nil {
+			slog.Error("failed to create array", "error", err)
+			str, err := v8.NewValue(vm.iso, "failed to create array")
+			if err != nil {
+				slog.Error("failed to create error value, disposing isolate", "error", err)
+				vm.iso.Dispose()
+				return nil
+			}
+			vm.iso.ThrowException(str)
+			return nil
+		}
+		for i, value := range values.Values {
+			val, err := v8.NewValue(vm.iso, value)
+			if err != nil {
+				slog.Error("failed to create value", "error", err)
+				str, err := v8.NewValue(vm.iso, "failed to create value")
+				if err != nil {
+					slog.Error("failed to create error value, disposing isolate", "error", err)
+					vm.iso.Dispose()
+					return nil
+				}
+				vm.iso.ThrowException(str)
+				return nil
+			}
+			err = o.SetIdx(uint32(i), val)
+			if err != nil {
+				slog.Error("failed to set value", "error", err)
+				return nil
+			}
+		}
+		return o.Object().Value
+	})); err != nil {
+		return err
+	}
+	if err := globalThis.Set("readResponseBody", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		val, err := v8.NewValue(vm.iso, setContextReq.HttpResponse.Body)
 		if err != nil {
 			slog.Error("failed to create value", "error", err)
 			return nil
 		}
-		return v8val
-	}))
-	if err != nil {
+		return val
+	})); err != nil {
 		return err
 	}
 
-	err = globalThis.Set("setStatus", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+	if err := globalThis.Set("setStatus", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		vm.responseWriter.WriteHeader(int(info.Args()[0].Int32()))
 		return nil
-	}))
-	if err != nil {
+	})); err != nil {
 		return err
 	}
 
-	err = globalThis.Set("setHeader", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+	if err := globalThis.Set("setHeader", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		vm.responseWriter.Header().Set(info.Args()[0].String(), info.Args()[1].String())
 		return nil
-	}))
-	if err != nil {
+	})); err != nil {
 		return err
 	}
 
-	err = globalThis.Set("renderBody", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+	if err := globalThis.Set("setBody", v8.NewFunctionTemplate(vm.iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		vm.responseWriter.Write([]byte(info.Args()[0].String()))
 		return nil
-	}))
-	if err != nil {
+	})); err != nil {
 		return err
 	}
 
