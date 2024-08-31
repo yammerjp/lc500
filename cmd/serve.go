@@ -23,27 +23,69 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
+	"net"
+	"os"
+	"os/signal"
 
 	"github.com/spf13/cobra"
+	api "github.com/yammerjp/lc500/proto/api/v1"
+	"github.com/yammerjp/lc500/worker/server"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
+
+// port option
 
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Start the v8 isolate worker server",
+	Long:  `Start the v8 isolate worker server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("serve called")
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
+
+		// port
+		port, err := cmd.Flags().GetInt("port")
+		if err != nil {
+			panic(err)
+		}
+
+		s := grpc.NewServer()
+		api.RegisterWorkerServer(s, server.NewServer())
+		if cmd.Flags().Changed("reflection") {
+			reflection.Register(s)
+		}
+
+		listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+		if err != nil {
+			slog.Error("failed to listen", "error", err)
+			os.Exit(1)
+		}
+		defer listener.Close()
+
+		go func() {
+			slog.Info(fmt.Sprintf("start gRPC server on port %d", port))
+			if err := s.Serve(listener); err != nil {
+				slog.Error("failed to serve", "error", err)
+				os.Exit(1)
+			}
+		}()
+
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, os.Interrupt)
+		<-quit
+		slog.Info("stopping gRPC server...")
+		s.GracefulStop()
+		slog.Info("gRPC server stopped")
 	},
 }
 
 func init() {
 	workerCmd.AddCommand(serveCmd)
+	serveCmd.Flags().IntP("port", "p", 8080, "The port to listen on")
+	// reflection option
+	serveCmd.Flags().BoolP("reflection", "r", false, "Enable reflection")
 
 	// Here you will define your flags and configuration settings.
 
