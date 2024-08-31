@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"io"
+	"log/slog"
 	"net/http"
 
 	workerapi "github.com/yammerjp/lc500/proto/api/v1"
@@ -38,7 +39,6 @@ func (c *WorkerClient) Close() {
 type WorkerRequest struct {
 	Client *WorkerClient
 	Vmid   string
-	Req    *http.Request
 	Ctx    context.Context
 }
 
@@ -51,7 +51,6 @@ func (c *WorkerClient) NewWorkerRequest(ctx context.Context, req *http.Request) 
 	return &WorkerRequest{
 		Client: c,
 		Vmid:   res.Vmid,
-		Req:    req,
 		Ctx:    ctx,
 	}, nil
 }
@@ -65,35 +64,48 @@ func (w *WorkerRequest) Compile(script string) error {
 }
 
 func (w *WorkerRequest) Run(req *http.Request, res *http.Response) (*WorkerResponse, error) {
-	workerHeaders := make(map[string]*workerapi.HeaderValue)
+	slog.Info("Running worker request", "url", req.URL.String())
+	requestHeaders := make(map[string]*workerapi.HeaderValue)
 	for k, v := range req.Header {
-		workerHeaders[k] = &workerapi.HeaderValue{Values: v}
+		slog.Info("Header", "key", k, "value", v)
+		requestHeaders[k] = &workerapi.HeaderValue{Values: v}
 	}
 	requestBody, err := io.ReadAll(req.Body)
+	slog.Info("Request body", "body", string(requestBody))
 	if err != nil {
 		return nil, err
+	}
+	responseHeaders := make(map[string]*workerapi.HeaderValue)
+	for k, v := range res.Header {
+		slog.Info("Header", "key", k, "value", v)
+		responseHeaders[k] = &workerapi.HeaderValue{Values: v}
 	}
 	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
+	slog.Info("Response body", "body", string(responseBody))
+
 	setContextReq := &workerapi.SetContextRequest{
 		Vmid: w.Vmid,
 		HttpRequest: &workerapi.HttpRequest{
-			Method:  w.Req.Method,
-			Url:     w.Req.URL.String(),
-			Headers: workerHeaders,
+			Method:  req.Method,
+			Url:     req.URL.String(),
+			Headers: requestHeaders,
 			Body:    string(requestBody),
 		},
 		HttpResponse: &workerapi.HttpResponse{
-			StatusCode: int32(w.Req.Response.StatusCode),
-			Headers:    workerHeaders,
+			StatusCode: int32(res.StatusCode),
+			Headers:    responseHeaders,
 			Body:       string(responseBody),
 		},
 	}
+	slog.Info("Set context request", "request", setContextReq)
+
 	if _, err = w.Client.Client.SetContext(w.Ctx, setContextReq); err != nil {
 		return nil, err
 	}
+	slog.Info("done Set context request")
 
 	resRun, err := w.Client.Client.Run(w.Ctx, &workerapi.RunRequest{
 		Vmid:    w.Vmid,
@@ -102,6 +114,7 @@ func (w *WorkerRequest) Run(req *http.Request, res *http.Response) (*WorkerRespo
 	if err != nil {
 		return nil, err
 	}
+	slog.Info("Run response", "response", resRun)
 	return &WorkerResponse{RunResponse: resRun}, nil
 }
 

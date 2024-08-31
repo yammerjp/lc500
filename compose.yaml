@@ -10,8 +10,9 @@ services:
       - "8080"
       - "--blueprint-endpoint"
       - "https://yammer.jp"
-      - "--worker-endpoint"
-      - "http://worker:8080"
+      - "--worker-target"
+      - "worker:8080"
+      - "--worker-insecure"
     depends_on:
       - minio
       - worker
@@ -42,6 +43,7 @@ services:
     image: minio/minio
     ports:
       - "9001:9001"
+      - "9000:9000"
     volumes:
       - minio_data:/export
       - minio_config:/root/.minio

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -50,9 +51,12 @@ func InitScriptFetcher() (*ScriptFetcher, error) {
 }
 
 func (s *ScriptFetcher) FetchScript(ctx context.Context, hostname string) (string, error) {
+	hostname = "localhost"
+	key := fmt.Sprintf("%s/index.js", hostname)
+	slog.Info("Fetching script", "key", key)
 	res, err := s.s3Client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
-		Key:    aws.String(hostname + "/index.js"),
+		Key:    aws.String(key),
 	})
 	if err != nil {
 		return "", err

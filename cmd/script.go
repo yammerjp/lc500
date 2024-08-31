@@ -22,65 +22,34 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-	"net/http"
-
 	"github.com/spf13/cobra"
-	"github.com/yammerjp/lc500/gateway/server"
 )
 
-// serveCmd represents the serve command
-var gatewayServeCmd = &cobra.Command{
-	Use:   "serve",
-	Short: "Start the gateway server",
-	Long:  `Start the gateway server`,
+// scriptCmd represents the script command
+var scriptCmd = &cobra.Command{
+	Use:   "script",
+	Short: "A brief description of your command",
+	Long: `A longer description that spans multiple lines and likely contains examples
+and usage of using your command. For example:
+
+Cobra is a CLI library for Go that empowers applications.
+This application is a tool to generate the needed files
+to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		port, err := cmd.Flags().GetInt("port")
-		if err != nil {
-			panic(err)
-		}
-		workerTarget, err := cmd.Flags().GetString("worker-target")
-		if err != nil {
-			panic(err)
-		}
-		workerInsecure, err := cmd.Flags().GetBool("worker-insecure")
-		if err != nil {
-			panic(err)
-		}
-		blueprintEndpoint, err := cmd.Flags().GetString("blueprint-endpoint")
-		if err != nil {
-			panic(err)
-		}
-
-		h, err := server.NewHandler(workerTarget, workerInsecure, blueprintEndpoint)
-		if err != nil {
-			panic(err)
-		}
-		defer h.Close()
-
-		err = http.ListenAndServe(fmt.Sprintf(":%d", port), h)
-		if err != nil {
-			panic(err)
-		}
+		cmd.Help()
 	},
 }
 
 func init() {
-	gatewayCmd.AddCommand(gatewayServeCmd)
-	gatewayServeCmd.Flags().IntP("port", "p", 8080, "Port to listen on")
+	rootCmd.AddCommand(scriptCmd)
 
-	// worker host worker port worker insecure
-	gatewayServeCmd.Flags().StringP("worker-target", "t", "localhost:8081", "Worker server target")
-	gatewayServeCmd.Flags().BoolP("worker-insecure", "i", false, "Worker server insecure")
-
-	gatewayServeCmd.Flags().StringP("blueprint-endpoint", "b", "http://localhost:8082", "Blueprint server endpoint")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// serveCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// scriptCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// serveCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// scriptCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
