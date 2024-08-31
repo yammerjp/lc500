@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+option go_package = "github.com/yammerjp/lc500/worker/api";
+
+package api;
+
+service Worker {
+  rpc InitVM(InitVMRequest) returns (InitVMResponse) {}
+  rpc DisposeVM(DisposeVMRequest) returns (DisposeVMResponse) {}
+  rpc Compile(CompileRequest) returns (CompileResponse) {}
+  rpc SetContext(SetContextRequest) returns (SetContextResponse) {}
+  rpc Run(RunRequest) returns (RunResponse) {}
+}
+
+message InitVMRequest {
+}
+
+message InitVMResponse {
+  string vmid = 1;
+}
+
+message DisposeVMRequest {
+  string vmid = 1;
+}
+
+message DisposeVMResponse {
+}
+
+message CompileRequest {
+  string vmid = 1;
+  string script = 2;
+}
+
+message CompileResponse {
+}
+
+message SetContextRequest {
+  string vmid = 1;
+  string httpRequestMethod = 2;
+  string httpRequestUrl = 3;
+  string httpRequestBody = 4;
+  map<string, string> httpRequestHeaders = 5;
+  string additionalContext = 6;
+}
+
+message SetContextResponse {
+}
+
+message RunRequest {
+  string vmid = 1;
+}
+
+message RunResponse {
+  int32 httpResponseStatusCode = 1;
+  map<string, string> httpResponseHeaders = 2;
+  string httpResponseBody = 3;
+}

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	api "github.com/yammerjp/lc500/worker/api"
+
 	"log/slog"
 )
 
@@ -50,4 +52,17 @@ func (d *Reciever) ToJSON() string {
 	}
 
 	return string(jsonReciever)
+}
+
+func (d *Reciever) ToGrpc() *api.RunResponse {
+	// TODO: handle multiple values
+	headers := make(map[string]string)
+	for key, value := range d.headers {
+		headers[key] = value[0]
+	}
+	return &api.RunResponse{
+		HttpResponseStatusCode: int32(d.statusCode),
+		HttpResponseHeaders:    headers,
+		HttpResponseBody:       string(d.body),
+	}
 }
