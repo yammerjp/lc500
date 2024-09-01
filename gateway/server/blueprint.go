@@ -36,6 +36,7 @@ func (f *BlueprintFetcher) NewBlueprintRequest(r *http.Request) (*http.Request, 
 			newReq.Header.Add(k, value)
 		}
 	}
+	newReq.Method = r.Method
 
 	return newReq, nil
 }
