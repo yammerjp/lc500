@@ -6,19 +6,16 @@ services:
       - "lc500"
       - "gateway"
       - "serve"
-      - "--port"
-      - "8080"
-      - "--blueprint-target"
-      - "blueprint:8082"
-      - "--worker-target"
-      - "worker:8080"
-      - "--worker-insecure"
     depends_on:
       - minio
       - worker
     ports:
       - 8080:8080
     environment:
+      PORT: 8080
+      WORKER_TARGET: worker:8080
+      WORKER_INSECURE: "true"
+      BLUEPRINT_TARGET: blueprint:8082
       AWS_ENDPOINT: http://minio:9000
       AWS_REGION: ap-northeast-1
       AWS_ACCESS_KEY_ID: minioadmin

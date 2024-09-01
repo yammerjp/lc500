@@ -24,6 +24,7 @@ package cmd
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/yammerjp/lc500/gateway/server"
@@ -35,30 +36,30 @@ var gatewayServeCmd = &cobra.Command{
 	Short: "Start the gateway server",
 	Long:  `Start the gateway server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		port, err := cmd.Flags().GetInt("port")
-		if err != nil {
-			panic(err)
+		port, ok := os.LookupEnv("PORT")
+		if !ok {
+			panic("PORT is not set")
 		}
-		workerTarget, err := cmd.Flags().GetString("worker-target")
-		if err != nil {
-			panic(err)
+		workerTarget, ok := os.LookupEnv("WORKER_TARGET")
+		if !ok {
+			panic("WORKER_TARGET is not set")
 		}
-		workerInsecure, err := cmd.Flags().GetBool("worker-insecure")
-		if err != nil {
-			panic(err)
+		workerInsecure, ok := os.LookupEnv("WORKER_INSECURE")
+		if !ok {
+			panic("WORKER_INSECURE is not set")
 		}
-		blueprintTarget, err := cmd.Flags().GetString("blueprint-target")
-		if err != nil {
-			panic(err)
+		blueprintTarget, ok := os.LookupEnv("BLUEPRINT_TARGET")
+		if !ok {
+			panic("BLUEPRINT_TARGET is not set")
 		}
 
-		h, err := server.NewHandler(workerTarget, workerInsecure, blueprintTarget)
+		h, err := server.NewHandler(workerTarget, workerInsecure == "true", blueprintTarget)
 		if err != nil {
 			panic(err)
 		}
 		defer h.Close()
 
-		err = http.ListenAndServe(fmt.Sprintf(":%d", port), h)
+		err = http.ListenAndServe(fmt.Sprintf(":%s", port), h)
 		if err != nil {
 			panic(err)
 		}
@@ -67,13 +68,6 @@ var gatewayServeCmd = &cobra.Command{
 
 func init() {
 	gatewayCmd.AddCommand(gatewayServeCmd)
-	gatewayServeCmd.Flags().IntP("port", "p", 8080, "Port to listen on")
-
-	// worker host worker port worker insecure
-	gatewayServeCmd.Flags().StringP("worker-target", "t", "localhost:8081", "Worker server target")
-	gatewayServeCmd.Flags().BoolP("worker-insecure", "i", false, "Worker server insecure")
-
-	gatewayServeCmd.Flags().StringP("blueprint-target", "b", "localhost:8082", "Blueprint server target")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

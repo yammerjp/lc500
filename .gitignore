@@ -1,1 +1,3 @@
 /lc500
+.env
+compose.override.yaml
