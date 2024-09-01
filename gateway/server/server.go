@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"log/slog"
-	"net"
 	"net/http"
 
 	"github.com/chebyrash/promise"
@@ -48,13 +47,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) HandleRequest(req *http.Request) (*WorkerResponse, error) {
 	slog.Info("Handling request", "url", req.URL.String())
+	hostname := req.Host
 	ctx := context.Background()
 
 	promiseScript := promise.New(func(resolve func(string), reject func(error)) {
-		hostname, _, err := net.SplitHostPort(req.Host)
-		if err != nil {
-			reject(err)
-		}
+		slog.Info("Fetching script", "hostname", hostname)
 		script, err := h.scriptFetcher.FetchScript(ctx, hostname)
 		if err != nil {
 			reject(err)

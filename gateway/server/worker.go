@@ -123,11 +123,11 @@ type WorkerResponse struct {
 }
 
 func (w *WorkerResponse) WriteTo(rw http.ResponseWriter) {
-	rw.WriteHeader(int(w.HttpResponse.StatusCode))
 	for k, v := range w.HttpResponse.Headers {
 		for _, value := range v.Values {
 			rw.Header().Add(k, value)
 		}
 	}
+	rw.WriteHeader(int(w.HttpResponse.StatusCode))
 	rw.Write([]byte(w.HttpResponse.Body))
 }

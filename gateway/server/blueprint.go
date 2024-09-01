@@ -2,10 +2,11 @@ package server
 
 import (
 	"bytes"
-	"context"
+	"fmt"
 	"io"
-	"net"
+	"log/slog"
 	"net/http"
+	"net/url"
 )
 
 type BlueprintFetcher struct {
@@ -13,7 +14,8 @@ type BlueprintFetcher struct {
 }
 
 func (f *BlueprintFetcher) NewBlueprintRequest(r *http.Request) (*http.Request, error) {
-	blueprintUrl := "http://" + r.Host + r.URL.String()
+	blueprintUrl := fmt.Sprintf("http://%s%s", r.Host, r.URL.String())
+	slog.Info("blueprintUrl", "url", blueprintUrl)
 	bluePrintRequestBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, err
@@ -24,7 +26,18 @@ func (f *BlueprintFetcher) NewBlueprintRequest(r *http.Request) (*http.Request, 
 	copy(originalRequestBody, bluePrintRequestBody)
 	r.Body = io.NopCloser(bytes.NewBuffer(originalRequestBody))
 
-	return http.NewRequest(r.Method, blueprintUrl, io.NopCloser(bytes.NewBuffer(bluePrintRequestBody)))
+	newReq, err := http.NewRequest(r.Method, blueprintUrl, io.NopCloser(bytes.NewBuffer(bluePrintRequestBody)))
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range r.Header {
+		for _, value := range v {
+			newReq.Header.Add(k, value)
+		}
+	}
+
+	return newReq, nil
 }
 
 func (f *BlueprintFetcher) Fetch(r *http.Request) (*http.Response, error) {
@@ -35,8 +48,8 @@ func (f *BlueprintFetcher) Fetch(r *http.Request) (*http.Response, error) {
 
 	client := &http.Client{
 		Transport: &http.Transport{
-			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-				return net.Dial("tcp", f.target)
+			Proxy: func(req *http.Request) (*url.URL, error) {
+				return url.Parse(fmt.Sprintf("http://%s", f.target))
 			},
 		},
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
