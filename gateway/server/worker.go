@@ -64,27 +64,27 @@ func (w *WorkerRequest) Compile(script string) error {
 }
 
 func (w *WorkerRequest) Run(req *http.Request, res *http.Response) (*WorkerResponse, error) {
-	slog.Info("Running worker request", "url", req.URL.String())
+	slog.Debug("Running worker request", "url", req.URL.String())
 	requestHeaders := make(map[string]*workerapi.HeaderValue)
 	for k, v := range req.Header {
-		slog.Info("Header", "key", k, "value", v)
+		slog.Debug("Header", "key", k, "value", v)
 		requestHeaders[k] = &workerapi.HeaderValue{Values: v}
 	}
 	requestBody, err := io.ReadAll(req.Body)
-	slog.Info("Request body", "body", string(requestBody))
+	slog.Debug("Request body", "body", string(requestBody))
 	if err != nil {
 		return nil, err
 	}
 	responseHeaders := make(map[string]*workerapi.HeaderValue)
 	for k, v := range res.Header {
-		slog.Info("Header", "key", k, "value", v)
+		slog.Debug("Header", "key", k, "value", v)
 		responseHeaders[k] = &workerapi.HeaderValue{Values: v}
 	}
 	responseBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
-	slog.Info("Response body", "body", string(responseBody))
+	slog.Debug("Response body", "body", string(responseBody))
 
 	setContextReq := &workerapi.SetContextRequest{
 		Vmid: w.Vmid,
@@ -100,12 +100,12 @@ func (w *WorkerRequest) Run(req *http.Request, res *http.Response) (*WorkerRespo
 			Body:       string(responseBody),
 		},
 	}
-	slog.Info("Set context request", "request", setContextReq)
+	slog.Debug("Set context request", "request", setContextReq)
 
 	if _, err = w.Client.Client.SetContext(w.Ctx, setContextReq); err != nil {
 		return nil, err
 	}
-	slog.Info("done Set context request")
+	slog.Debug("done Set context request")
 
 	resRun, err := w.Client.Client.Run(w.Ctx, &workerapi.RunRequest{
 		Vmid:    w.Vmid,
@@ -114,7 +114,7 @@ func (w *WorkerRequest) Run(req *http.Request, res *http.Response) (*WorkerRespo
 	if err != nil {
 		return nil, err
 	}
-	slog.Info("Run response", "response", resRun)
+	slog.Debug("Run response", "response", resRun)
 	return &WorkerResponse{RunResponse: resRun}, nil
 }
 

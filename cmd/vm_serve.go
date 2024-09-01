@@ -43,7 +43,23 @@ var vmServeCmd = &cobra.Command{
 	Short: "Start the v8 isolate worker server",
 	Long:  `Start the v8 isolate worker server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
+		var level slog.Level
+		LOG_LEVEL, ok := os.LookupEnv("LOG_LEVEL")
+		if ok {
+			switch LOG_LEVEL {
+			case "DEBUG":
+				level = slog.LevelDebug
+			case "INFO":
+				level = slog.LevelInfo
+			case "WARN":
+				level = slog.LevelWarn
+			case "ERROR":
+				level = slog.LevelError
+			default:
+				level = slog.LevelInfo
+			}
+		}
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})))
 
 		// port
 		port, err := cmd.Flags().GetInt("port")

@@ -46,19 +46,19 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleRequest(req *http.Request) (*WorkerResponse, error) {
-	slog.Info("Handling request", "url", req.URL.String())
+	slog.Debug("Handling request", "url", req.URL.String())
 	hostname := req.Host
 	ctx := context.Background()
 
 	promiseScript := promise.New(func(resolve func(string), reject func(error)) {
-		slog.Info("Fetching script", "hostname", hostname)
+		slog.Debug("Fetching script", "hostname", hostname)
 		script, err := h.scriptFetcher.FetchScript(ctx, hostname)
 		if err != nil {
 			reject(err)
 		}
 		resolve(script)
 	})
-	slog.Info("async Fetched script", "script", promiseScript)
+	slog.Debug("async Fetched script", "script", promiseScript)
 
 	promiseBlueprint := promise.New(func(resolve func(*http.Response), reject func(error)) {
 		res, err := h.blueprintFetcher.Fetch(req)
@@ -67,36 +67,36 @@ func (h *Handler) HandleRequest(req *http.Request) (*WorkerResponse, error) {
 		}
 		resolve(res)
 	})
-	slog.Info("async Fetched blueprint", "blueprint", promiseBlueprint)
+	slog.Debug("async Fetched blueprint", "blueprint", promiseBlueprint)
 
 	workerRequest, err := h.workerClient.NewWorkerRequest(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	slog.Info("created worker request", "workerRequest", workerRequest)
+	slog.Debug("created worker request", "workerRequest", workerRequest)
 
 	script, err := promiseScript.Await(ctx)
 	if err != nil {
 		return nil, err
 	}
-	slog.Info("await fetching script", "script", &script)
+	slog.Debug("await fetching script", "script", &script)
 
 	if err := workerRequest.Compile(*script); err != nil {
 		return nil, err
 	}
-	slog.Info("compiled worker request", "workerRequest", workerRequest)
+	slog.Debug("compiled worker request", "workerRequest", workerRequest)
 
 	res, err := promiseBlueprint.Await(ctx)
 	if err != nil {
 		return nil, err
 	}
-	slog.Info("await fetching blueprint", "blueprint", res)
+	slog.Debug("await fetching blueprint", "blueprint", res)
 
 	workerResponse, err := workerRequest.Run(req, *res)
 	if err != nil {
 		return nil, err
 	}
-	slog.Info("worker response", "workerResponse", workerResponse)
+	slog.Debug("worker response", "workerResponse", workerResponse)
 
 	return workerResponse, nil
 }

@@ -333,6 +333,6 @@ func (vm *VM) RunScript() error {
 	if err != nil {
 		return err
 	}
-	slog.Info("script ran", "value", val)
+	slog.Debug("script ran", "value", val)
 	return nil
 }

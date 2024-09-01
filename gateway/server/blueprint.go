@@ -15,7 +15,7 @@ type BlueprintFetcher struct {
 
 func (f *BlueprintFetcher) NewBlueprintRequest(r *http.Request) (*http.Request, error) {
 	blueprintUrl := fmt.Sprintf("http://%s%s", r.Host, r.URL.String())
-	slog.Info("blueprintUrl", "url", blueprintUrl)
+	slog.Debug("blueprintUrl", "url", blueprintUrl)
 	bluePrintRequestBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, err
