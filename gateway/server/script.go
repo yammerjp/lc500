@@ -51,7 +51,6 @@ func InitScriptFetcher() (*ScriptFetcher, error) {
 }
 
 func (s *ScriptFetcher) FetchScript(ctx context.Context, hostname string) (string, error) {
-	hostname = "localhost"
 	key := fmt.Sprintf("%s/index.js", hostname)
 	slog.Info("Fetching script", "key", key)
 	res, err := s.s3Client.GetObject(ctx, &s3.GetObjectInput{

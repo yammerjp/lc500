@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"log/slog"
+	"net"
 	"net/http"
 
 	"github.com/chebyrash/promise"
@@ -14,7 +15,7 @@ type Handler struct {
 	blueprintFetcher *BlueprintFetcher
 }
 
-func NewHandler(workerTarget string, workerInsecure bool, blueprintEndpoint string) (*Handler, error) {
+func NewHandler(workerTarget string, workerInsecure bool, blueprintTarget string) (*Handler, error) {
 	workerClientWrapper, err := NewWorkerClient(workerTarget, workerInsecure)
 	if err != nil {
 		return nil, err
@@ -23,7 +24,7 @@ func NewHandler(workerTarget string, workerInsecure bool, blueprintEndpoint stri
 	if err != nil {
 		return nil, err
 	}
-	blueprintFetcher := &BlueprintFetcher{endpoint: blueprintEndpoint}
+	blueprintFetcher := NewBlueprintFetcher(blueprintTarget)
 
 	return &Handler{
 		workerClient:     workerClientWrapper,
@@ -50,7 +51,11 @@ func (h *Handler) HandleRequest(req *http.Request) (*WorkerResponse, error) {
 	ctx := context.Background()
 
 	promiseScript := promise.New(func(resolve func(string), reject func(error)) {
-		script, err := h.scriptFetcher.FetchScript(ctx, req.URL.Hostname())
+		hostname, _, err := net.SplitHostPort(req.Host)
+		if err != nil {
+			reject(err)
+		}
+		script, err := h.scriptFetcher.FetchScript(ctx, hostname)
 		if err != nil {
 			reject(err)
 		}

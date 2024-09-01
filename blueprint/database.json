@@ -1,0 +1,40 @@
+{
+    "tenants": {
+        "taro.api.blueprint.lc500.yammer.jp": {
+            "name": "taro",
+            "description": "taro's api server",
+            "articles": {
+                "2024-06-01": {
+                    "title": "2024-06-01",
+                    "body": "今日は公園に行った"
+                },
+                "2024-06-02": {
+                    "title": "2024-06-02",
+                    "body": "朝のケーキが美味しかった"
+                },
+                "2024-06-03": {
+                    "title": "2024-06-03",
+                    "body": "今日はサーバーを作った"
+                }
+            }
+        },
+        "hanako.api.blueprint.lc500.yammer.jp": {
+            "name": "hanako",
+            "description": "hanako's api server",
+            "articles": {
+                "2024-06-01": {
+                    "title": "2024-06-01",
+                    "body": "卵が割れてしまった"
+                },
+                "2024-06-02": {
+                    "title": "2024-06-02",
+                    "body": "今日は遊園地に行った"
+                },
+                "2024-06-03": {
+                    "title": "2024-06-03",
+                    "body": "たこ焼きを食べた"
+                }
+            }
+        }
+    }
+}

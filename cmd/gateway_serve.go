@@ -47,12 +47,12 @@ var gatewayServeCmd = &cobra.Command{
 		if err != nil {
 			panic(err)
 		}
-		blueprintEndpoint, err := cmd.Flags().GetString("blueprint-endpoint")
+		blueprintTarget, err := cmd.Flags().GetString("blueprint-target")
 		if err != nil {
 			panic(err)
 		}
 
-		h, err := server.NewHandler(workerTarget, workerInsecure, blueprintEndpoint)
+		h, err := server.NewHandler(workerTarget, workerInsecure, blueprintTarget)
 		if err != nil {
 			panic(err)
 		}
@@ -73,7 +73,7 @@ func init() {
 	gatewayServeCmd.Flags().StringP("worker-target", "t", "localhost:8081", "Worker server target")
 	gatewayServeCmd.Flags().BoolP("worker-insecure", "i", false, "Worker server insecure")
 
-	gatewayServeCmd.Flags().StringP("blueprint-endpoint", "b", "http://localhost:8082", "Blueprint server endpoint")
+	gatewayServeCmd.Flags().StringP("blueprint-target", "b", "localhost:8082", "Blueprint server target")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

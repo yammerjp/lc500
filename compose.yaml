@@ -8,8 +8,8 @@ services:
       - "serve"
       - "--port"
       - "8080"
-      - "--blueprint-endpoint"
-      - "https://yammer.jp"
+      - "--blueprint-target"
+      - "blueprint:8082"
       - "--worker-target"
       - "worker:8080"
       - "--worker-insecure"
@@ -64,6 +64,18 @@ services:
       /usr/bin/mc policy download myminio/tenant-scripts;
       exit 0;
       "
+  blueprint:
+    image: golang:1.23
+    volumes:
+      - "./blueprint:/app"
+    command:
+      - "go"
+      - "run"
+      - "/app/main.go"
+    environment:
+      PORT: 8082
+      DATABASE_PATH: /app/database.json
+
 volumes:
   minio_data:
   minio_config:
