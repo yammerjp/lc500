@@ -28,6 +28,10 @@ This architecture ensures that each request is handled in a secure, isolated man
 sequenceDiagram
 
     actor User
+    participant Gateway
+    participant Worker
+    participant Script Storage as Script Storage <br>(S3-compatible object storage)
+    participant Context Storage as Context Storage <br>(called blueprint here)
     User->>Gateway: Send HTTP request
 
     par Initialize V8 isolate context and Fetch script and context
@@ -38,8 +42,8 @@ sequenceDiagram
 
     Worker->>Gateway: V8 isolate context initialized
     Script Storage->>Gateway: Return script
-    Context Storage->>Gateway: Return context
     Gateway->>Worker: Pass script and ready to run
+    Context Storage->>Gateway: Return context
     Gateway->>Worker: Pass context
     Worker->>Worker: Execute script
     Worker->>Gateway: Return execution result
